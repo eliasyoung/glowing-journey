@@ -2,13 +2,15 @@
 
 use std::net::ToSocketAddrs;
 
+use tower_cookies::CookieManagerLayer;
 use tracing::Level;
 
 use argon2::{password_hash::SaltString, Argon2, PasswordHash};
 use axum::{
     extract::{self, Path},
     http::StatusCode,
-    response::IntoResponse,
+    middleware,
+    response::{IntoResponse, Response},
     routing::{get, get_service, post},
     Json, Router,
 };
@@ -93,6 +95,14 @@ fn routes_hello() -> Router {
         .route("/hello/:name", get(hello_path))
 }
 
+async fn main_response_mapper(res: Response) -> Response {
+    tracing::info!("->> {:<12} - main_response_mapper", "RES_MAPPER");
+
+    println!();
+
+    res
+}
+
 #[tokio::main]
 async fn main() {
     println!("Hello, world!");
@@ -135,11 +145,13 @@ async fn main() {
             get(get_user),
         )
         .merge(routes_all)
-        .fallback_service(routes_static())
+        .layer(middleware::map_response(main_response_mapper))
+        .layer(CorsLayer::permissive())
+        .layer(CookieManagerLayer::new())
         .layer(TraceLayer::new_for_http())
-        .layer(CorsLayer::permissive());
+        .fallback_service(routes_static());
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:4000").await.unwrap();
 
     axum::serve(listener, app).await.unwrap();
 }
