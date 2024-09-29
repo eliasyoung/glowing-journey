@@ -22,6 +22,7 @@ use tracing_subscriber::{filter, fmt, layer::SubscriberExt, util::SubscriberInit
 pub use self::error::{Error, Result};
 
 mod error;
+mod model;
 mod web;
 
 #[derive(Deserialize, Debug)]
@@ -132,10 +133,12 @@ async fn main() {
     // tracing::info!("DB connect successfully!");
 
     // sqlx::migrate!("db/migrations/").run(&db).await?;
+    let mc = model::ModelController::new().await.unwrap();
 
     let routes_all = Router::new()
         .merge(routes_hello())
-        .merge(web::routes_login::routes());
+        .merge(web::routes_login::routes())
+        .merge(web::routes_ticket::routes(mc));
 
     let app = Router::new()
         .route("/", get(root))
