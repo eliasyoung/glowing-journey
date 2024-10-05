@@ -57,7 +57,8 @@ impl ModelController {
         let store = self.tickets_store.lock().unwrap();
 
         // find out map map_filter filter difference
-        let tickets = store.iter().map(|t| t.clone().unwrap()).collect();
+        // let tickets = store.iter().filter(|t| t.is_some()).map(|t| t.clone().unwrap()).collect();
+        let tickets = store.iter().filter_map(|t| t.clone()).collect();
 
         Ok(tickets)
     }

@@ -135,10 +135,17 @@ async fn main() {
     // sqlx::migrate!("db/migrations/").run(&db).await?;
     let mc = model::ModelController::new().await.unwrap();
 
+    let routes_apis = web::routes_ticket::routes(mc.clone()).route_layer(middleware::from_fn(web::middleware_auth::middleware_require_auth));
+
     let routes_all = Router::new()
         .merge(routes_hello())
         .merge(web::routes_login::routes())
-        .merge(web::routes_ticket::routes(mc));
+        .nest("/api", routes_apis)
+        .layer(middleware::map_response(main_response_mapper))
+        .layer(CorsLayer::permissive())
+        .layer(CookieManagerLayer::new())
+        .layer(TraceLayer::new_for_http())
+        .fallback_service(routes_static());
 
     let app = Router::new()
         .route("/", get(root))
@@ -147,12 +154,7 @@ async fn main() {
             // post(create_user).
             get(get_user),
         )
-        .merge(routes_all)
-        .layer(middleware::map_response(main_response_mapper))
-        .layer(CorsLayer::permissive())
-        .layer(CookieManagerLayer::new())
-        .layer(TraceLayer::new_for_http())
-        .fallback_service(routes_static());
+        .merge(routes_all);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:4000").await.unwrap();
 

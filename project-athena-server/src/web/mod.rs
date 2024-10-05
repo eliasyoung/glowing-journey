@@ -1,3 +1,4 @@
+pub mod middleware_auth;
 pub mod routes_login;
 pub mod routes_ticket;
 
